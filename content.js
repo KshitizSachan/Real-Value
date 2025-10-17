@@ -1,13 +1,18 @@
 // Track converted elements
 let convertedElements = new Set();
+let processedPrices = new Set();
 
-// Indian Rupee patterns - more comprehensive
+// Indian Rupee patterns - comprehensive patterns for e-commerce sites
 const rupeePatterns = [
+  // Standard patterns with rupee symbol
   /₹\s*(\d{1,3}(?:,\d{2,3})*(?:\.\d{1,2})?)/g,
   /Rs\.?\s*(\d{1,3}(?:,\d{2,3})*(?:\.\d{1,2})?)/gi,
   /INR\s*(\d{1,3}(?:,\d{2,3})*(?:\.\d{1,2})?)/gi,
+  // Price without comma separators
+  /₹\s*(\d+(?:\.\d{1,2})?)/g,
+  /Rs\.?\s*(\d+(?:\.\d{1,2})?)/gi,
+  // Numbers followed by rupee indicators
   /(\d{1,3}(?:,\d{2,3})*(?:\.\d{1,2})?)\s*(?:rupees?|rs\.?)/gi,
-  /(?:price|cost|worth|mrp)[:\s]*₹?\s*(\d{1,3}(?:,\d{2,3})*(?:\.\d{1,2})?)/gi
 ];
 
 // Conversion functions
@@ -27,7 +32,23 @@ function calculateTimeRequired(price, hourlySalary) {
 
 function calculateItemEquivalence(price, itemCost, itemName) {
   const quantity = (price / itemCost).toFixed(1);
-  return `${quantity} ${itemName}${quantity > 1 ? 's' : ''}`;
+  const emoji = getItemEmoji(itemName);
+  return `${emoji} ${quantity} ${itemName}${parseFloat(quantity) !== 1 ? 's' : ''}`;
+}
+
+function getItemEmoji(itemName) {
+  const lowerName = itemName.toLowerCase();
+  if (lowerName.includes('coffee')) return '☕';
+  if (lowerName.includes('pizza')) return '🍕';
+  if (lowerName.includes('burger')) return '🍔';
+  if (lowerName.includes('movie') || lowerName.includes('ticket')) return '🎬';
+  if (lowerName.includes('book')) return '📚';
+  if (lowerName.includes('beer') || lowerName.includes('drink')) return '🍺';
+  if (lowerName.includes('meal') || lowerName.includes('food')) return '🍽️';
+  if (lowerName.includes('tea')) return '🍵';
+  if (lowerName.includes('samosa') || lowerName.includes('snack')) return '🥟';
+  if (lowerName.includes('ice cream')) return '🍦';
+  return '📦'; // default
 }
 
 function calculateLifePercentage(price, hourlySalary) {
@@ -61,9 +82,9 @@ function convertPrice(price, mode, config) {
     case 'time':
       return `⏰ ${calculateTimeRequired(price, hourlySalary)}`;
     case 'item':
-      return `☕ ${calculateItemEquivalence(price, config.itemCost, config.itemName)}`;
+      return `${calculateItemEquivalence(price, config.itemCost, config.itemName)}`;
     case 'life':
-      return `📊 ${calculateLifePercentage(price, hourlySalary)}`;
+      return `${calculateLifePercentage(price, hourlySalary)} of life`;
     default:
       return '';
   }
@@ -85,80 +106,131 @@ function parsePrice(priceStr) {
 function findAndConvertPrices(mode, config) {
   let count = 0;
   
-  // Get all text nodes
-  const walker = document.createTreeWalker(
-    document.body,
-    NodeFilter.SHOW_TEXT,
-    {
-      acceptNode: function(node) {
-        // Skip script, style, and already processed nodes
-        if (node.parentElement.tagName === 'SCRIPT' || 
-            node.parentElement.tagName === 'STYLE' ||
-            node.parentElement.classList.contains('price-perspective-conversion')) {
-          return NodeFilter.FILTER_REJECT;
-        }
-        return NodeFilter.FILTER_ACCEPT;
-      }
-    }
-  );
+  // Strategy: Find elements that directly contain rupee symbols
+  const allElements = Array.from(document.querySelectorAll('*'));
   
-  const nodesToProcess = [];
-  let node;
-  
-  while (node = walker.nextNode()) {
-    nodesToProcess.push(node);
-  }
-  
-  nodesToProcess.forEach(textNode => {
-    const text = textNode.textContent;
-    let hasMatch = false;
-    
-    // Check if text contains any rupee pattern
-    for (let pattern of rupeePatterns) {
-      if (pattern.test(text)) {
-        hasMatch = true;
-        break;
-      }
+  // Filter to elements that have price-like characteristics
+  const priceElements = allElements.filter(element => {
+    // Skip unwanted elements
+    if (element.tagName === 'SCRIPT' || 
+        element.tagName === 'STYLE' ||
+        element.classList.contains('price-perspective-conversion') ||
+        convertedElements.has(element)) {
+      return false;
     }
     
-    if (!hasMatch) return;
+    const text = element.textContent;
+    // Must contain rupee symbol and numbers
+    return (text.includes('₹') || text.includes('Rs') || text.includes('INR')) && /\d/.test(text);
+  });
+  
+  // Process each element
+  priceElements.forEach(element => {
+    const text = element.textContent.replace(/\s+/g, ' ').trim();
     
-    // Process matches
-    let modifiedText = text;
-    let offset = 0;
+    // Skip if already has conversion badge
+    if (element.querySelector('.price-perspective-conversion')) {
+      return;
+    }
+    
+    // Extract price using patterns
+    let price = 0;
+    let priceFound = false;
     
     for (let pattern of rupeePatterns) {
-      pattern.lastIndex = 0; // Reset regex
-      let match;
+      pattern.lastIndex = 0;
+      const match = pattern.exec(text);
       
-      while ((match = pattern.exec(text)) !== null) {
+      if (match && match[1]) {
         const priceStr = match[1];
-        const price = parsePrice(priceStr);
+        const parsedPrice = parsePrice(priceStr);
         
-        if (price > 0) {
-          const conversion = convertPrice(price, mode, config);
-          const fullMatch = match[0];
-          const replacement = `${fullMatch} <span class="price-perspective-conversion" style="color: #667eea; font-weight: 600; font-size: 0.9em; margin-left: 4px;">(${conversion})</span>`;
-          
-          // Create a temporary div to hold the HTML
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = modifiedText;
-          
-          // Replace in the parent element
-          if (textNode.parentElement && !convertedElements.has(textNode.parentElement)) {
-            const parent = textNode.parentElement;
-            const newHTML = text.replace(fullMatch, replacement);
-            
-            // Only replace if we haven't processed this element yet
-            if (parent.innerHTML.indexOf('price-perspective-conversion') === -1) {
-              parent.innerHTML = parent.innerHTML.replace(fullMatch, replacement);
-              convertedElements.add(parent);
-              count++;
-            }
+        if (parsedPrice > 0) {
+          price = parsedPrice;
+          priceFound = true;
+          break;
+        }
+      }
+    }
+    
+    // Fallback: extract largest number if rupee symbol present
+    if (!priceFound) {
+      const numberMatches = text.match(/\d[\d,.]*/g);
+      if (numberMatches) {
+        const numbers = numberMatches.map(n => parsePrice(n)).filter(n => n > 0);
+        if (numbers.length > 0) {
+          price = Math.max(...numbers);
+          if (price >= 1 && price <= 100000000) {
+            priceFound = true;
           }
         }
       }
     }
+    
+    if (!priceFound || price === 0) return;
+    
+    // Check if this price was already added to this specific element
+    const elementKey = `${element.tagName}-${element.className}-${price}`;
+    if (processedPrices.has(elementKey)) {
+      return;
+    }
+    
+    // Check if a parent element already has this conversion
+    let parent = element.parentElement;
+    let hasParentConversion = false;
+    let depth = 0;
+    
+    while (parent && depth < 5) {
+      if (convertedElements.has(parent)) {
+        const parentText = parent.textContent.replace(/\s+/g, ' ').trim();
+        if (parentText.includes(text) || text.includes(parentText)) {
+          hasParentConversion = true;
+          break;
+        }
+      }
+      parent = parent.parentElement;
+      depth++;
+    }
+    
+    if (hasParentConversion) return;
+    
+    // Mark as processed
+    processedPrices.add(elementKey);
+    
+    const conversion = convertPrice(price, mode, config);
+    
+    // Get font size for scaling
+    const computedStyle = window.getComputedStyle(element);
+    const elementFontSize = parseFloat(computedStyle.fontSize) || 14;
+    
+    // Calculate elegant badge size
+    let badgeFontSize = Math.min(12, elementFontSize * 0.7);
+    badgeFontSize = Math.max(9, badgeFontSize);
+    
+    // Create conversion badge
+    const badge = document.createElement('span');
+    badge.className = 'price-perspective-conversion';
+    badge.style.cssText = `
+      color: #667eea;
+      font-weight: 500;
+      font-size: ${badgeFontSize}px;
+      margin-left: 8px;
+      background: rgba(102, 126, 234, 0.08);
+      padding: 3px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1.3;
+      border: 1px solid rgba(102, 126, 234, 0.15);
+    `;
+    badge.textContent = conversion;
+    
+    // Append badge
+    element.appendChild(document.createTextNode(' '));
+    element.appendChild(badge);
+    convertedElements.add(element);
+    count++;
   });
   
   return count;
@@ -172,6 +244,7 @@ function clearConversions() {
   });
   
   convertedElements.clear();
+  processedPrices.clear();
 }
 
 // Listen for messages from popup
