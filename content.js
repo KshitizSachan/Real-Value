@@ -105,6 +105,7 @@ function parsePrice(priceStr) {
 
 function findAndConvertPrices(mode, config) {
   let count = 0;
+  const processedElements = new Set();
   
   // Strategy: Find elements that directly contain rupee symbols
   const allElements = Array.from(document.querySelectorAll('*'));
@@ -124,6 +125,13 @@ function findAndConvertPrices(mode, config) {
     return (text.includes('₹') || text.includes('Rs') || text.includes('INR')) && /\d/.test(text);
   });
   
+  // Sort by element depth (process deepest elements first to avoid parent-child duplicates)
+  priceElements.sort((a, b) => {
+    const depthA = getElementDepth(a);
+    const depthB = getElementDepth(b);
+    return depthB - depthA;
+  });
+  
   // Process each element
   priceElements.forEach(element => {
     const text = element.textContent.replace(/\s+/g, ' ').trim();
@@ -132,6 +140,17 @@ function findAndConvertPrices(mode, config) {
     if (element.querySelector('.price-perspective-conversion')) {
       return;
     }
+    
+    // Skip if any descendant already has been converted
+    let hasConvertedDescendant = false;
+    for (let converted of convertedElements) {
+      if (element.contains(converted) && element !== converted) {
+        hasConvertedDescendant = true;
+        break;
+      }
+    }
+    
+    if (hasConvertedDescendant) return;
     
     // Extract price using patterns
     let price = 0;
@@ -169,30 +188,29 @@ function findAndConvertPrices(mode, config) {
     
     if (!priceFound || price === 0) return;
     
-    // Check if this price was already added to this specific element
-    const elementKey = `${element.tagName}-${element.className}-${price}`;
+    // Create a unique fingerprint for this element's position and price
+    const elementPath = getElementPath(element);
+    const elementKey = `${elementPath}-${price}`;
+    
     if (processedPrices.has(elementKey)) {
       return;
     }
     
-    // Check if a parent element already has this conversion
-    let parent = element.parentElement;
-    let hasParentConversion = false;
-    let depth = 0;
+    // Check if any ancestor already has a conversion for the same/similar price
+    let ancestor = element.parentElement;
+    let ancestorDepth = 0;
     
-    while (parent && depth < 5) {
-      if (convertedElements.has(parent)) {
-        const parentText = parent.textContent.replace(/\s+/g, ' ').trim();
-        if (parentText.includes(text) || text.includes(parentText)) {
-          hasParentConversion = true;
-          break;
+    while (ancestor && ancestorDepth < 10) {
+      if (convertedElements.has(ancestor)) {
+        const ancestorText = ancestor.textContent.replace(/\s+/g, ' ').trim();
+        // If ancestor contains this element's text, skip (it's already converted higher up)
+        if (ancestorText.includes(text) && ancestor.querySelector('.price-perspective-conversion')) {
+          return;
         }
       }
-      parent = parent.parentElement;
-      depth++;
+      ancestor = ancestor.parentElement;
+      ancestorDepth++;
     }
-    
-    if (hasParentConversion) return;
     
     // Mark as processed
     processedPrices.add(elementKey);
@@ -234,6 +252,36 @@ function findAndConvertPrices(mode, config) {
   });
   
   return count;
+}
+
+function getElementDepth(element) {
+  let depth = 0;
+  let parent = element.parentElement;
+  while (parent) {
+    depth++;
+    parent = parent.parentElement;
+  }
+  return depth;
+}
+
+function getElementPath(element) {
+  const path = [];
+  let current = element;
+  let depth = 0;
+  
+  while (current && current !== document.body && depth < 10) {
+    let index = 0;
+    let sibling = current;
+    while (sibling.previousElementSibling) {
+      sibling = sibling.previousElementSibling;
+      index++;
+    }
+    path.unshift(`${current.tagName}-${index}`);
+    current = current.parentElement;
+    depth++;
+  }
+  
+  return path.join('/');
 }
 
 function clearConversions() {
