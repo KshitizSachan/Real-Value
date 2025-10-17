@@ -1,27 +1,31 @@
 {
   "manifest_version": 3,
-  "name": "RealValue",
-  "description": "Visualize real-world equivalents of online prices.",
-  "version": "1.0",
-  "permissions": ["storage", "activeTab", "scripting"],
+  "name": "Price Perspective",
+  "version": "1.0.0",
+  "description": "Convert prices to time, items, or life percentage for better perspective",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["contentScript.js"],
-      "run_at": "document_end"
+      "js": ["content.js"],
+      "run_at": "document_idle"
     }
   ],
-  "action": {
-    "default_popup": "popup/popup.html",
-    "default_icon": {
-      "16": "icons/icon16.jpeg",
-      "48": "icons/icon48.jpeg",
-      "128": "icons/icon128.jpeg"
-    }
-  },
   "icons": {
-    "16": "icons/icon16.jpeg",
-    "48": "icons/icon48.jpeg",
-    "128": "icons/icon128.jpeg"
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   }
 }

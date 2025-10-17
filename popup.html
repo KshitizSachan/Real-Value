@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Price Perspective</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>💰 Price Perspective</h1>
+    
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="convert">Convert</button>
+      <button class="tab-btn" data-tab="config">Config</button>
+    </div>
+
+    <!-- Convert Tab -->
+    <div id="convert-tab" class="tab-content active">
+      <div class="section">
+        <h2>Conversion Mode</h2>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" name="mode" value="time" checked>
+            <span>⏰ Work Time Required</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="mode" value="item">
+            <span>☕ Item Equivalence</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="mode" value="life">
+            <span>📊 Life Percentage</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="section mode-info">
+        <div id="time-info" class="mode-detail">
+          <p>Converts prices to work hours/days based on your salary</p>
+        </div>
+        <div id="item-info" class="mode-detail" style="display:none;">
+          <p>Shows how many units of your chosen item equals the price</p>
+        </div>
+        <div id="life-info" class="mode-detail" style="display:none;">
+          <p>Shows what percentage of your working life this cost represents</p>
+        </div>
+      </div>
+
+      <button id="apply-btn" class="btn btn-primary">Apply Conversion</button>
+      <button id="clear-btn" class="btn btn-secondary">Clear All</button>
+
+      <div id="status" class="status"></div>
+    </div>
+
+    <!-- Config Tab -->
+    <div id="config-tab" class="tab-content">
+      <div class="section">
+        <h2>Salary Settings</h2>
+        <div class="input-group">
+          <label for="salary">Monthly Salary (₹)</label>
+          <input type="number" id="salary" placeholder="50000" min="0">
+        </div>
+        <div class="calculated-info">
+          <div class="calc-item">
+            <span>Per Week:</span>
+            <span id="weekly-salary">-</span>
+          </div>
+          <div class="calc-item">
+            <span>Per Day:</span>
+            <span id="daily-salary">-</span>
+          </div>
+          <div class="calc-item">
+            <span>Per Hour:</span>
+            <span id="hourly-salary">-</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Item Settings</h2>
+        <div class="input-group">
+          <label for="item-name">Item Name</label>
+          <input type="text" id="item-name" placeholder="Coffee">
+        </div>
+        <div class="input-group">
+          <label for="item-cost">Item Cost (₹)</label>
+          <input type="number" id="item-cost" placeholder="150" min="0" step="0.01">
+        </div>
+      </div>
+
+      <button id="save-btn" class="btn btn-primary">Save Configuration</button>
+      <div id="config-status" class="status"></div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

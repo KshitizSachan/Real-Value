@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Icon Generator for Price Perspective Extension</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    
+    .icon-preview {
+      display: flex;
+      gap: 30px;
+      margin: 30px 0;
+      justify-content: center;
+      align-items: flex-end;
+    }
+    
+    .icon-container {
+      text-align: center;
+    }
+    
+    canvas {
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .icon-label {
+      margin-top: 10px;
+      font-weight: 600;
+      color: #555;
+    }
+    
+    .download-section {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 5px;
+      transition: transform 0.2s;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .instructions {
+      margin-top: 30px;
+      padding: 20px;
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      border-radius: 4px;
+    }
+    
+    .instructions h3 {
+      margin-top: 0;
+      color: #856404;
+    }
+    
+    .instructions ol {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    
+    .instructions li {
+      margin: 8px 0;
+      color: #856404;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 Price Perspective Icon Generator</h1>
+    <p class="subtitle">Generate icons for your browser extension</p>
+    
+    <div class="icon-preview">
+      <div class="icon-container">
+        <canvas id="icon16" width="16" height="16"></canvas>
+        <div class="icon-label">16x16</div>
+      </div>
+      <div class="icon-container">
+        <canvas id="icon48" width="48" height="48"></canvas>
+        <div class="icon-label">48x48</div>
+      </div>
+      <div class="icon-container">
+        <canvas id="icon128" width="128" height="128"></canvas>
+        <div class="icon-label">128x128</div>
+      </div>
+    </div>
+    
+    <div class="download-section">
+      <h3>Download Icons</h3>
+      <button onclick="downloadIcon('icon16', 16)">Download 16x16</button>
+      <button onclick="downloadIcon('icon48', 48)">Download 48x48</button>
+      <button onclick="downloadIcon('icon128', 128)">Download 128x128</button>
+      <button onclick="downloadAll()">Download All Icons</button>
+    </div>
+    
+    <div class="instructions">
+      <h3>📋 Installation Instructions</h3>
+      <ol>
+        <li>Click "Download All Icons" button above</li>
+        <li>Create a folder called <code>icons</code> in your extension directory</li>
+        <li>Save the three downloaded icon files in the <code>icons</code> folder</li>
+        <li>Make sure the files are named: <code>icon16.png</code>, <code>icon48.png</code>, <code>icon128.png</code></li>
+        <li>Load the extension in Chrome/Edge from <code>chrome://extensions/</code></li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    function drawIcon(canvas, size) {
+      const ctx = canvas.getContext('2d');
+      const scale = size / 128;
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, size, size);
+      
+      // Background gradient
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(1, '#764ba2');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+      
+      // Draw rupee symbol
+      ctx.fillStyle = 'white';
+      ctx.font = `bold ${size * 0.6}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('₹', size / 2, size / 2);
+      
+      // Draw small clock icon in corner (representing time conversion)
+      if (size >= 48) {
+        const clockSize = size * 0.25;
+        const clockX = size * 0.75;
+        const clockY = size * 0.25;
+        
+        // Clock circle
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.lineWidth = size * 0.02;
+        ctx.beginPath();
+        ctx.arc(clockX, clockY, clockSize, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // Clock hands
+        ctx.beginPath();
+        ctx.moveTo(clockX, clockY);
+        ctx.lineTo(clockX, clockY - clockSize * 0.6);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(clockX, clockY);
+        ctx.lineTo(clockX + clockSize * 0.5, clockY);
+        ctx.stroke();
+      }
+    }
+    
+    // Draw all icons on page load
+    drawIcon(document.getElementById('icon16'), 16);
+    drawIcon(document.getElementById('icon48'), 48);
+    drawIcon(document.getElementById('icon128'), 128);
+    
+    function downloadIcon(canvasId, size) {
+      const canvas = document.getElementById(canvasId);
+      const link = document.createElement('a');
+      link.download = `icon${size}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+    
+    function downloadAll() {
+      setTimeout(() => downloadIcon('icon16', 16), 100);
+      setTimeout(() => downloadIcon('icon48', 48), 300);
+      setTimeout(() => downloadIcon('icon128', 128), 500);
+      
+      alert('All icons will be downloaded shortly! Save them in the "icons" folder of your extension.');
+    }
+  </script>
+</body>
+</html>
