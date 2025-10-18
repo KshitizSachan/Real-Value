@@ -20,7 +20,8 @@
         "*://*.amazon.in/*",
         "*://*.flipkart.com/*",
         "*://*.myntra.com/*",
-        "*://*.meesho.com/*"
+        "*://*.meesho.com/*",
+        "*://*.nike.com/*"
       ],
       "js": ["content.js"],
       "run_at": "document_end"
