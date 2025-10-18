@@ -1,3 +1,4 @@
+<!-- popup.html -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -15,8 +16,18 @@
       <button class="tab-btn" data-tab="config">Config</button>
     </div>
 
-    <!-- Convert Tab -->
     <div id="convert-tab" class="tab-content active">
+      <div class="section">
+        <div class="auto-convert-toggle">
+          <label class="toggle-container">
+            <input type="checkbox" id="auto-convert-toggle">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Auto-convert on e-commerce sites</span>
+          </label>
+          <p class="toggle-hint">Automatically converts prices while browsing Amazon, Flipkart, Myntra, and Meesho</p>
+        </div>
+      </div>
+
       <div class="section">
         <h2>Conversion Mode</h2>
         <div class="radio-group">
@@ -53,7 +64,6 @@
       <div id="status" class="status"></div>
     </div>
 
-    <!-- Config Tab -->
     <div id="config-tab" class="tab-content">
       <div class="section">
         <h2>Salary Settings</h2>

@@ -1,20 +1,17 @@
-// Tab switching
+// popup.js
 const tabBtns = document.querySelectorAll('.tab-btn');
 const tabContents = document.querySelectorAll('.tab-content');
 
 tabBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     const tabName = btn.dataset.tab;
-    
     tabBtns.forEach(b => b.classList.remove('active'));
     tabContents.forEach(c => c.classList.remove('active'));
-    
     btn.classList.add('active');
     document.getElementById(`${tabName}-tab`).classList.add('active');
   });
 });
 
-// Mode info display
 const modeRadios = document.querySelectorAll('input[name="mode"]');
 const modeDetails = document.querySelectorAll('.mode-detail');
 
@@ -22,19 +19,21 @@ modeRadios.forEach(radio => {
   radio.addEventListener('change', (e) => {
     modeDetails.forEach(detail => detail.style.display = 'none');
     document.getElementById(`${e.target.value}-info`).style.display = 'block';
+    
+    const autoConvertToggle = document.getElementById('auto-convert-toggle');
+    if (autoConvertToggle.checked) {
+      updateAutoConvert();
+    }
   });
 });
 
-// Calculate salary breakdowns
 function calculateSalaryBreakdown(monthlySalary) {
   const weeksPerMonth = 4.33;
   const daysPerWeek = 5;
   const hoursPerDay = 7;
-  
   const weeklySalary = monthlySalary / weeksPerMonth;
   const dailySalary = weeklySalary / daysPerWeek;
   const hourlySalary = dailySalary / hoursPerDay;
-  
   return {
     weekly: weeklySalary,
     daily: dailySalary,
@@ -42,14 +41,11 @@ function calculateSalaryBreakdown(monthlySalary) {
   };
 }
 
-// Update salary display
 const salaryInput = document.getElementById('salary');
 salaryInput.addEventListener('input', () => {
   const salary = parseFloat(salaryInput.value);
-  
   if (salary && salary > 0) {
     const breakdown = calculateSalaryBreakdown(salary);
-    
     document.getElementById('weekly-salary').textContent = `₹${breakdown.weekly.toFixed(2)}`;
     document.getElementById('daily-salary').textContent = `₹${breakdown.daily.toFixed(2)}`;
     document.getElementById('hourly-salary').textContent = `₹${breakdown.hourly.toFixed(2)}`;
@@ -60,22 +56,18 @@ salaryInput.addEventListener('input', () => {
   }
 });
 
-// Load saved configuration
 function loadConfig() {
-  chrome.storage.sync.get(['salary', 'itemName', 'itemCost', 'conversionMode'], (data) => {
+  chrome.storage.sync.get(['salary', 'itemName', 'itemCost', 'conversionMode', 'autoConvert'], (data) => {
     if (data.salary) {
       salaryInput.value = data.salary;
       salaryInput.dispatchEvent(new Event('input'));
     }
-    
     if (data.itemName) {
       document.getElementById('item-name').value = data.itemName;
     }
-    
     if (data.itemCost) {
       document.getElementById('item-cost').value = data.itemCost;
     }
-    
     if (data.conversionMode) {
       const radio = document.querySelector(`input[name="mode"][value="${data.conversionMode}"]`);
       if (radio) {
@@ -83,36 +75,91 @@ function loadConfig() {
         radio.dispatchEvent(new Event('change'));
       }
     }
+    const autoConvertToggle = document.getElementById('auto-convert-toggle');
+    autoConvertToggle.checked = data.autoConvert || false;
   });
 }
 
-// Save configuration
 document.getElementById('save-btn').addEventListener('click', () => {
   const salary = parseFloat(salaryInput.value);
   const itemName = document.getElementById('item-name').value.trim();
   const itemCost = parseFloat(document.getElementById('item-cost').value);
-  
   if (!salary || salary <= 0) {
     showStatus('config-status', 'Please enter a valid salary', 'error');
     return;
   }
-  
   const config = {
     salary: salary,
     itemName: itemName || 'Coffee',
     itemCost: itemCost || 150
   };
-  
   chrome.storage.sync.set(config, () => {
     showStatus('config-status', 'Configuration saved successfully!', 'success');
+    
+    const autoConvertToggle = document.getElementById('auto-convert-toggle');
+    if (autoConvertToggle.checked) {
+      updateAutoConvert();
+    }
   });
 });
 
-// Apply conversion
+const autoConvertToggle = document.getElementById('auto-convert-toggle');
+autoConvertToggle.addEventListener('change', async () => {
+  const enabled = autoConvertToggle.checked;
+  chrome.storage.sync.set({ autoConvert: enabled });
+  
+  if (enabled) {
+    const config = await new Promise(resolve => {
+      chrome.storage.sync.get(['salary', 'itemName', 'itemCost'], resolve);
+    });
+    
+    if (!config.salary || config.salary <= 0) {
+      showStatus('status', 'Please configure your salary first in the Config tab', 'warning');
+      autoConvertToggle.checked = false;
+      chrome.storage.sync.set({ autoConvert: false });
+      return;
+    }
+    
+    updateAutoConvert();
+    showStatus('status', 'Auto-convert enabled for e-commerce sites', 'success');
+  } else {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    chrome.tabs.sendMessage(tab.id, {
+      action: 'toggleAutoConvert',
+      enabled: false
+    }, () => {
+      if (chrome.runtime.lastError) {
+        // Silently ignore errors for non-matching sites
+      }
+    });
+    showStatus('status', 'Auto-convert disabled', 'success');
+  }
+});
+
+async function updateAutoConvert() {
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  const config = await new Promise(resolve => {
+    chrome.storage.sync.get(['salary', 'itemName', 'itemCost'], resolve);
+  });
+  
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  
+  chrome.tabs.sendMessage(tab.id, {
+    action: 'toggleAutoConvert',
+    enabled: true,
+    mode: mode,
+    config: config
+  }, () => {
+    if (chrome.runtime.lastError) {
+      // Silently ignore errors for non-matching sites
+    }
+  });
+  
+  chrome.storage.sync.set({ conversionMode: mode });
+}
+
 document.getElementById('apply-btn').addEventListener('click', async () => {
   const mode = document.querySelector('input[name="mode"]:checked').value;
-  
-  // Validate configuration
   const config = await new Promise(resolve => {
     chrome.storage.sync.get(['salary', 'itemName', 'itemCost'], resolve);
   });
@@ -127,10 +174,8 @@ document.getElementById('apply-btn').addEventListener('click', async () => {
     return;
   }
   
-  // Save selected mode
   chrome.storage.sync.set({ conversionMode: mode });
   
-  // Get active tab and inject content script
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   
   try {
@@ -139,7 +184,6 @@ document.getElementById('apply-btn').addEventListener('click', async () => {
       files: ['content.js']
     });
     
-    // Send message to content script
     chrome.tabs.sendMessage(tab.id, {
       action: 'convert',
       mode: mode,
@@ -158,7 +202,6 @@ document.getElementById('apply-btn').addEventListener('click', async () => {
   }
 });
 
-// Clear conversions
 document.getElementById('clear-btn').addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   
@@ -171,16 +214,13 @@ document.getElementById('clear-btn').addEventListener('click', async () => {
   });
 });
 
-// Show status message
 function showStatus(elementId, message, type) {
   const status = document.getElementById(elementId);
   status.textContent = message;
   status.className = `status show ${type}`;
-  
   setTimeout(() => {
     status.classList.remove('show');
   }, 3000);
 }
 
-// Load config on popup open
 loadConfig();

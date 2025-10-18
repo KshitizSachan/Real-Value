@@ -1,3 +1,4 @@
+/* popup.css */
 * {
   margin: 0;
   padding: 0;
@@ -72,6 +73,66 @@ h2 {
 
 .section {
   margin-bottom: 24px;
+}
+
+.auto-convert-toggle {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  border: 2px solid #e9ecef;
+}
+
+.toggle-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.toggle-container input[type="checkbox"] {
+  display: none;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 48px;
+  height: 24px;
+  background: #ccc;
+  border-radius: 24px;
+  transition: all 0.3s;
+  margin-right: 12px;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  top: 2px;
+  left: 2px;
+  transition: all 0.3s;
+}
+
+.toggle-container input[type="checkbox"]:checked + .toggle-slider {
+  background: #667eea;
+}
+
+.toggle-container input[type="checkbox"]:checked + .toggle-slider::before {
+  left: 26px;
+}
+
+.toggle-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.toggle-hint {
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+  line-height: 1.4;
 }
 
 .radio-group {

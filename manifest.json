@@ -1,13 +1,11 @@
+
 {
   "manifest_version": 3,
   "name": "Price Perspective",
-  "version": "1.0.0",
-  "description": "Convert prices to time, items, or life percentage for better perspective",
-  "permissions": [
-    "activeTab",
-    "storage",
-    "scripting"
-  ],
+  "version": "1.0",
+  "description": "Convert prices to meaningful perspectives",
+  "permissions": ["storage", "scripting", "tabs"],
+  "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -18,9 +16,14 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "*://*.amazon.in/*",
+        "*://*.flipkart.com/*",
+        "*://*.myntra.com/*",
+        "*://*.meesho.com/*"
+      ],
       "js": ["content.js"],
-      "run_at": "document_idle"
+      "run_at": "document_end"
     }
   ],
   "icons": {
